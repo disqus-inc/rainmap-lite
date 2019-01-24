@@ -1,6 +1,6 @@
 #!/usr/bin/python
 #Cronjob script that executes Nmap scans on the background
-import sqlite3
+import psycopg2
 import os
 import subprocess
 import smtplib
@@ -9,15 +9,15 @@ import uuid
 import lxml.etree as ET
 import distutils.spawn
 
-from email.MIMEMultipart import MIMEMultipart
-from email.MIMEText import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from NmapOptions import NmapOptions
 
 #<CONFIGURATION>
-BASE_URL = "http://127.0.0.1:8000"
-SMTP_USER = "youremail@gmail.com"
-SMTP_PASS = "yourpassword"
-SMTP_SERVER = "smtp.gmail.com"
+BASE_URL = os.getenv('RAINMAP_DOMAIN', 'localhost')
+SMTP_USER = os.getenv('RAINMAP_SMTP_USER')
+SMTP_PASS = os.getenv('RAINMAP_SMTP_PASSWORD')
+SMTP_SERVER = os.getenv('SMTP_HOST', 'localhost')
 SMTP_PORT = 587
 #</CONFIGURATION>
 
@@ -25,9 +25,9 @@ OUTPUT_PATH = os.path.normpath("%s/nmaper/static/results" % os.getcwd()).replace
 
 def find_nmap():
     if os.name == "nt":
-        nmap_path = distutils.spawn.find_executable("nmap.exe", os.environ["PROGRAMFILES(X86)"]+"\Nmap")
+        nmap_path = distutils.spawn.find_executable("nmap.exe", os.environ["PROGRAMFILES(X86)"]+"\\Nmap")
         if not(nmap_path):
-            nmap_path = distutils.spawn.find_executable("nmap.exe", os.environ["PROGRAMFILES"]+"\Nmap")
+            nmap_path = distutils.spawn.find_executable("nmap.exe", os.environ["PROGRAMFILES"]+"\\Nmap")
     else:
         nmap_path = distutils.spawn.find_executable("nmap","/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin")
 
@@ -36,7 +36,7 @@ def find_nmap():
 def notify(id_, email, cmd):
     print('[%s] Sending report %s to %s' % (datetime.datetime.now(), id_, email))
     msg = MIMEMultipart()
-    msg['From'] = SMTP_USER
+    msg['From'] = os.getenv('RAINMAP_FROM_MAIL', 'portscan@disqus.net')
     msg['To'] = email
     msg['Subject'] = "Your scan results are ready"
     body = "{2}\n\nView online:\n{0}/static/results/{1}.html\n\nDownload:\n{0}/static/results/{1}.nmap\n{0}/static/results/{1}.xml\n{0}/static/results/{1}.gnmap".format(BASE_URL, id_, cmd)
@@ -47,7 +47,7 @@ def notify(id_, email, cmd):
     server.ehlo()
     server.login(SMTP_USER, SMTP_PASS)
     text = msg.as_string()
-    server.sendmail(SMTP_USER, email, text)
+    server.sendmail(os.getenv('RAINMAP_FROM_MAIL', 'portscan@disqus.net'), email, text)
 
 def update_status(id_, status, cursor, db):
     cursor.execute('''UPDATE nmaper_nmapscan SET status_text = ? WHERE id = ? ''', (status, id_))
@@ -89,9 +89,9 @@ def main():
         print("[%s] Could not find path for nmap. Quitting!" % datetime.datetime.now())
         exit()
 
-    db = sqlite3.connect('scandere.sqlite3')
+    db = psycopg2.connect(host=os.getenv('RAINMAP_POSTGRES_HOST', 'localhost'), database=os.getenv('RAINMAP_POSTGRES_PATH'), user=os.getenv('RAINMAP_DB_USER'), password=os.getenv('RAINMAP_DB_PASSWORD'))
     cursor = db.cursor()
-    cursor.execute('''SELECT * FROM nmaper_nmapscan WHERE status_text="waiting"''')
+    cursor.execute("SELECT * FROM nmaper_nmapscan WHERE status_text='waiting';")
     all_rows = cursor.fetchall()
     print('[%s] Listing pending nmap scans...' % datetime.datetime.now())
 
