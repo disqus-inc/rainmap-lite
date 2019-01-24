@@ -77,8 +77,12 @@ WSGI_APPLICATION = 'scandere.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'scandere.sqlite3'),
+				'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': os.getenv('RAINMAP_POSTGRES_PATH'),
+        'USER': os.getenv('RAINMAP_DB_USER')',
+        'PASSWORD': os.getenv('RAINMAP_DB_PASSWORD'),
+        'HOST': os.getenv('RAINMAP_POSTGRES_HOST', 'localhost'),
+        'PORT': os.getenv('DB_PORT', '5432'),
     }
 }
 
