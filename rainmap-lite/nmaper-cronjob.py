@@ -45,23 +45,22 @@ def notify(id_, email, cmd):
     server.ehlo()
     server.starttls()
     server.ehlo()
-    server.login(SMTP_USER, SMTP_PASS)
     text = msg.as_string()
     server.sendmail(os.getenv('RAINMAP_FROM_MAIL', 'portscan@disqus.net'), email, text)
 
 def update_status(id_, status, cursor, db):
-    cursor.execute('''UPDATE nmaper_nmapscan SET status_text = ? WHERE id = ? ''', (status, id_))
+    cursor.execute("UPDATE nmaper_nmapscan SET status_text = ? WHERE id = ? ", (status, id_))
     db.commit()
     print("[%s] Job #%s status changed to '%s'" % (datetime.datetime.now(), id_, status))
 
 def set_random_id(id_, cursor, db):
     rid = uuid.uuid4()
-    cursor.execute('''UPDATE nmaper_nmapscan SET uuid = ? WHERE id = ? ''', (rid.hex, id_))
+    cursor.execute("UPDATE nmaper_nmapscan SET uuid = ? WHERE id = ? ", (rid.hex, id_))
     db.commit()
     return rid.hex
 
 def set_endtime(id_, cursor, db):
-    cursor.execute('''UPDATE nmaper_nmapscan SET end_date = ? WHERE id = ? ''', (datetime.datetime.now(), id_))
+    cursor.execute("UPDATE nmaper_nmapscan SET end_date = ? WHERE id = ? ", (datetime.datetime.now(), id_))
     db.commit()
 
 def execute(path, cmd, uuid):
